@@ -2,7 +2,7 @@
 
 # 🎮 KeyRemapper
 
-**[🇷🇺 Русский](README_RU.md)**
+**[🇷🇺 Русский](docs/README_RU.md)**
 
 ### Text Input Automation for GTA SA RP
 
