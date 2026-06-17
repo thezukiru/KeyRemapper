@@ -1,0 +1,10 @@
+# KeyRemapper - Конфигурация биндингов
+# Формат: Модификаторы+Клавиша=файл_скрипта.txt
+# Модификаторы: Ctrl, Shift, Alt
+# Примеры:
+#   Ctrl+1=script1.txt
+#   Ctrl+Shift+R=script2.txt
+#   NumPad5=action.txt
+
+Ctrl+1=NUMPAD_KEYS.txt
+Ctrl+2=branch_test.txt
