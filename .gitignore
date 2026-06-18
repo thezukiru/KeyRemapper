@@ -1,0 +1,40 @@
+# Build outputs
+*.exe
+*.dll
+*.pdb
+*.cache
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Python scripts (temp)
+create_save.py
+
+# Temp/test files
+save.txt
+branch_test.txt
+KeyRemapper_test.exe
+KeyRemapper_clean.cs
+build_test.bat
+
+# Kilo (some tool directory)
+.kilo/
+
+# Runtime generated files
+overlay_position.txt
+
+# Misc temp files
+pat2.txt
+pat3.txt
+pat4.txt
+popa.txt
+text_input.txt
+text_lal.txt
+call.txt
+medcard.txt
+NUMPAD_KEYS.txt
+instructions.txt
+remove_namespaces.ps1
