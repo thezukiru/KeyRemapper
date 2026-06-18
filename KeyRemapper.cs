@@ -138,9 +138,6 @@ class KeyRemapper
                     // Добавляем текущее нажатие
                     escPresses.Add(now);
                     
-                    // Отладочный вывод
-                    Console.WriteLine("Esc нажатий за последнюю секунду: " + escPresses.Count);
-                    
                     // Если накоплено 3 нажатия за секунду и скрипт активен, отменяем
                     if (escPresses.Count >= 3 && (InstructionExecutor.IsExecuting() || InstructionExecutor.IsWaiting()))
                     {
