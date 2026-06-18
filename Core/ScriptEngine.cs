@@ -218,7 +218,7 @@ using System.Windows.Forms;
                 string line = lines[i];
                 
                 // Пропускаем пустые строки и комментарии
-                if (string.IsNullOrWhiteSpace(line) || line.Trim().StartsWith("//"))
+                if (string.IsNullOrWhiteSpace(line) || line.Trim().StartsWith("//") || line.Trim().StartsWith("#"))
                 {
                     i++;
                     continue;
