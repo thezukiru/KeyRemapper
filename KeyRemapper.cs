@@ -71,14 +71,15 @@ class KeyRemapper
         // Устанавливаем глобальный хук клавиатуры
         _hookID = SetHook(_proc);
         
-        // Почему MainWindow вместо пустого Application.Run():        // раньше программа работала "вслепую" через консоль, теперь GUI показывает
+        // Почему MainWindow вместо пустого Application.Run():
+        // раньше программа работала "вслепую" через консоль, теперь GUI показывает
         // загруженные биндинги, статус GTA, и позволяет управлять программой из трея
-Application.Run(new MainWindow());
+        Application.Run(new MainWindow());
 
-singleInstanceMutex.ReleaseMutex();
-singleInstanceMutex = null;
-UnhookWindowsHookEx(_hookID);
-}
+        singleInstanceMutex.ReleaseMutex();
+        singleInstanceMutex = null;
+        UnhookWindowsHookEx(_hookID);
+    }
 
     // Устанавливает хук клавиатуры
     private static IntPtr SetHook(LowLevelKeyboardProc proc)
@@ -173,10 +174,10 @@ UnhookWindowsHookEx(_hookID);
             {
                 if (InstructionExecutor.CanContinue(null))
                 {
-                    System.Threading.Tasks.Task.Run(async () => // async добавлен
+                    System.Threading.Tasks.Task.Run(async () =>
                     {
-                    await System.Threading.Tasks.Task.Delay(50); // Заменяем Thread.Sleep
-                    InstructionExecutor.ContinueExecution();
+                        await System.Threading.Tasks.Task.Delay(50);
+                        InstructionExecutor.ContinueExecution();
                     });
                     return (IntPtr)1; // Блокируем нажатие
                 }
@@ -204,13 +205,13 @@ UnhookWindowsHookEx(_hookID);
                     // Проверяем активность GTA перед запуском задачи
                     if (GtaMonitor.IsGtaSaActive())
                     {
-                    // Запускаем выполнение инструкций (или перезапускаем)
-                    System.Threading.Tasks.Task.Run(async () => // async добавлен
-                    {
-                    await System.Threading.Tasks.Task.Delay(50); // Заменяем Thread.Sleep
-                    InstructionExecutor.ExecuteInstructions(fileToExecute);
-                    });
-                    } // <-- Закрываем if (GtaMonitor.IsGtaSaActive())
+                        // Запускаем выполнение инструкций (или перезапускаем)
+                        System.Threading.Tasks.Task.Run(async () =>
+                        {
+                            await System.Threading.Tasks.Task.Delay(50);
+                            InstructionExecutor.ExecuteInstructions(fileToExecute);
+                        });
+                    }
                     
                     // Блокируем оригинальное нажатие клавиш
                     return (IntPtr)1;
