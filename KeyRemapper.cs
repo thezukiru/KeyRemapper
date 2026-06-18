@@ -54,6 +54,14 @@ class KeyRemapper
     [STAThread]
     static void Main()
     {
+        bool createdNew;
+        Mutex singleInstanceMutex = new Mutex(true, "KeyRemapper_SingleInstance", out createdNew);
+        if (!createdNew)
+        {
+            MessageBox.Show("KeyRemapper уже запущен.", "KeyRemapper", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        
         // Загружаем биндинги из конфигурационного файла
         keyBindings = ConfigParser.LoadConfig(configFile);
         
@@ -65,10 +73,12 @@ class KeyRemapper
         
         // Почему MainWindow вместо пустого Application.Run():        // раньше программа работала "вслепую" через консоль, теперь GUI показывает
         // загруженные биндинги, статус GTA, и позволяет управлять программой из трея
-        Application.Run(new MainWindow());
-        
-        UnhookWindowsHookEx(_hookID);
-    }
+Application.Run(new MainWindow());
+
+singleInstanceMutex.ReleaseMutex();
+singleInstanceMutex = null;
+UnhookWindowsHookEx(_hookID);
+}
 
     // Устанавливает хук клавиатуры
     private static IntPtr SetHook(LowLevelKeyboardProc proc)
