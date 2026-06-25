@@ -195,6 +195,17 @@ using System.Windows.Forms;
             staThread.Join();
         }
         
+        // Удаляет N символов слева от курсора (Backspace × count)
+        public static void SendBackspaces(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                keybd_event(0x08, 0, 0, UIntPtr.Zero);        // Backspace down
+                keybd_event(0x08, 0, KEYEVENTF_KEYUP, UIntPtr.Zero); // Backspace up
+                Thread.Sleep(10);
+            }
+        }
+        
         // Экранирует специальные символы для SendKeys
         private static string EscapeSendKeysText(string text)
         {

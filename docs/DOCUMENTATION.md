@@ -1,8 +1,8 @@
 # KeyRemapper - Полная документация
 
 > **Версия:** v0.0.1 (после рефакторинга Этап 4)  
-> **Дата обновления:** 03.05.2026  
-> **Автор:** OpenCode AI Assistant
+> **Дата обновления:** 25.06.2026  
+> **Автор:** thezukiru
 
 ---
 
@@ -47,6 +47,7 @@ KeyRemapper - это программа для Windows на C#, которая �
 - ✅ Множественные биндинги клавиш
 - ✅ Два режима ввода (быстрый через буфер обмена и посимвольный)
 - ✅ Система ветвления и условных переходов
+- ✅ Текстовые макросы (Text Expander) с триггерами в чате
 - ✅ Управление мышью
 - ✅ Визуальный overlay с отображением прогресса
 - ✅ Протокол безопасной отмены
@@ -333,18 +334,24 @@ do Степень травмы?{Enter}
 ```
 KeyRemapper/
 ├── Models/
-│   └── KeyBinding.cs           # Модель данных для биндингов
+│   ├── KeyBinding.cs           # Модель данных для биндингов
+│   └── TextMacro.cs            # Модель данных для текстовых макросов
 ├── Core/
-│   ├── ConfigParser.cs         # Парсинг config.txt
-│   ├── InputSimulator.cs       # Эмуляция ввода (Win32 API)
+│   ├── ConfigParser.cs         # Парсинг config.txt (биндинги + триггеры)
+│   ├── InputSimulator.cs       # Эмуляция ввода (Win32 API) + SendBackspaces()
+│   ├── InputTracker.cs         # Буфер символов для Text Expander
+│   ├── TextExpander.cs         # Движок Text Expander
 │   ├── GtaMonitor.cs          # Мониторинг GTA SA с кэшированием
 │   ├── BranchingEngine.cs     # Обработка меток, веток, GOTO
 │   ├── ScriptEngine.cs        # Главный движок выполнения
 │   └── InstructionExecutor.cs # Адаптер для обратной совместимости
-├── KeyRemapper.cs              # Главный класс и OverlayForm
+├── UI/
+│   ├── MainWindow.cs           # Главное окно приложения (список макросов)
+│   └── StyledControls.cs       # Кастомные UI компоненты
+├── KeyRemapper.cs              # Главный класс, HookCallback, интеграция TextExpander
 ├── compile.bat                 # Скрипт компиляции
-├── config.txt                  # Конфигурация биндингов
-└── *.txt                       # Файлы скриптов
+├── config.txt                  # Конфигурация биндингов и триггеров
+└── *.txt                       # Файлы скриптов и текстовых макросов
 ```
 
 ### Ключевые компоненты
@@ -356,9 +363,18 @@ KeyRemapper/
 - `string InstructionFile` - файл скрипта
 - `bool Matches()` - проверка соответствия нажатия
 
+#### Models/TextMacro.cs
+Модель данных для текстовых макросов (Text Expander).
+- `string Trigger` - триггер (например, ".текст")
+- `string FilePath` - путь к файлу с текстом
+- `string Content` - содержимое файла
+- `bool UseClipboard` - режим вставки через буфер обмена
+- `bool Matches(string buffer)` - проверка, заканчивается ли буфер на триггер
+
 #### Core/ConfigParser.cs
 Статический класс для парсинга config.txt.
-- `LoadConfig()` - загружает биндинги
+- `LoadConfig()` - загружает биндинги клавиш
+- `LoadTextMacros()` - загружает текстовые макросы (формат: "триггер"=файл.txt)
 - `ParseKeyCombo()` - парсит строки типа "Ctrl+Shift+E"
 
 #### Core/InputSimulator.cs
@@ -366,7 +382,24 @@ Win32 API импорты для эмуляции ввода.
 - `TypeTextFast()` - быстрый ввод через keybd_event
 - `PasteViaClipboard()` - вставка через буфер обмена
 - `SwitchToRussian()` - переключение раскладки
+- `SendBackspaces(int count)` - отправка последовательных Backspace для удаления триггера
 - Методы для работы с мышью
+
+#### Core/InputTracker.cs
+Отслеживание ввода символов для Text Expander.
+- Буфер последних 50 символов (StringBuilder)
+- `AddCharacter(char c)` - добавление символа в буфер
+- `GetBuffer()` - получение текущего буфера
+- `Clear()` / `Reset()` - очистка буфера (при потере фокуса GTA)
+
+#### Core/TextExpander.cs
+Движок Text Expander (замена триггеров на текст).
+- Загрузка списка макросов из ConfigParser
+- `ProcessKeyPress(Keys key, char character)` - обработка нажатия клавиши
+- `CheckAndExpand(Keys triggerKey)` - проверка буфера на совпадение с триггерами
+- `ExecuteMacro(TextMacro macro, Keys triggerKey)` - удаление триггера, вставка текста, отправка Enter
+- Защита от рекурсии через флаг `isExpanding`
+- Работает только когда GTA SA активна и скрипт не выполняется
 
 #### Core/GtaMonitor.cs
 Мониторинг активности GTA SA с кэшированием.
@@ -396,6 +429,8 @@ Win32 API импорты для эмуляции ввода.
 #### KeyRemapper.cs
 Главный класс и OverlayForm (~730 строк).
 - `HookCallback()` - перехват клавиш через Windows Hook
+- Интеграция с TextExpander: проверка триггеров когда GTA активна и скрипт не выполняется
+- `GetCharacterFromVkCode()` - получение символа с учётом текущей раскладки (ToAscii)
 - Обработка протокола отмены (Win/Esc)
 - `OverlayForm` - полупрозрачное окно для отображения прогресса
 
@@ -405,12 +440,17 @@ Win32 API импорты для эмуляции ввода.
 ```batch
 C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /target:winexe /out:KeyRemapper.exe ^
     Models\KeyBinding.cs ^
+    Models\TextMacro.cs ^
     Core\ConfigParser.cs ^
     Core\InputSimulator.cs ^
+    Core\InputTracker.cs ^
+    Core\TextExpander.cs ^
     Core\GtaMonitor.cs ^
     Core\BranchingEngine.cs ^
     Core\ScriptEngine.cs ^
     Core\InstructionExecutor.cs ^
+    UI\StyledControls.cs ^
+    UI\MainWindow.cs ^
     KeyRemapper.cs ^
     /reference:System.Windows.Forms.dll ^
     /reference:System.Drawing.dll
@@ -525,6 +565,18 @@ Ctrl+Alt+Multiply=multiply_action.txt
 - 7 логических компонентов
 - Готовность к добавлению GUI
 
+#### v0.0.1+ - Text Expander (текстовые макросы)
+- Добавлен движок Text Expander (замена триггеров на текст)
+- Поддержка триггеров в чате: `.текст`, `!погоня`, `>медик` и др.
+- Формат config.txt: `"триггер"=файл.txt`
+- Буфер последних 50 символов (InputTracker)
+- Регистронезависимый поиск триггеров
+- Учёт текущей раскладки клавиатуры
+- Защита от рекурсии (флаг isExpanding)
+- Блокировка во время выполнения скриптов
+- Новые файлы: Models/TextMacro.cs, Core/InputTracker.cs, Core/TextExpander.cs
+- Обновлён UI/MainWindow.cs — отображение макросов в ListBox
+
 ---
 
 ### История оптимизаций
@@ -612,6 +664,7 @@ Ctrl+Alt+Multiply=multiply_action.txt
 3. Переключение раскладки добавляет задержку ~100мс
 4. SendKeys имеет ограничения по скорости
 5. C# 5 ограничения (нет ReadOnlySpan, ValueTuple, pattern matching)
+6. Text Expander: буфер символов отслеживает только нажатия клавиш, но не реальное содержимое чата (ошибка возможна при удалении мышкой)
 
 ---
 
@@ -624,11 +677,7 @@ Ctrl+Alt+Multiply=multiply_action.txt
 
 ---
 
-## 📄 Лицензия
-
-Проект разработан с помощью OpenCode AI Assistant.
-
-**Дата последнего обновления:** 03.05.2026
+**Дата последнего обновления:** 25.06.2026
 
 ---
 
