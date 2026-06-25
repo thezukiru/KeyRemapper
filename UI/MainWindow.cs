@@ -720,6 +720,17 @@ class MainWindow : Form
             combo += b.Key.ToString();
             bindingsList.Items.Add(combo + " \u2192 " + b.InstructionFile);
         }
+
+        // Загружаем и отображаем текстовые макросы (Text Expander)
+        List<TextMacro> macros = ConfigParser.LoadTextMacros(CONFIG_FILE);
+        if (macros.Count > 0)
+        {
+            bindingsList.Items.Add(""); // Разделитель
+            foreach (var m in macros)
+            {
+                bindingsList.Items.Add(m.Trigger + " \u2192 " + m.FilePath);
+            }
+        }
     }
 
     private void ReloadButton_Click(object sender, EventArgs e)

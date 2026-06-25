@@ -21,6 +21,11 @@ class KeyRemapper
     private static IntPtr _hookID = IntPtr.Zero;
     private static string configFile = "config.txt";
     private static List<KeyBinding> keyBindings = new List<KeyBinding>();
+    private static TextExpander textExpander = new TextExpander();
+    
+    // ToAscii для конвертации vkCode в символ (учитывает раскладку)
+    [DllImport("user32.dll")]
+    private static extern int ToAscii(uint uVirtKey, uint uScanCode, byte[] lpKeyState, out uint lpChar, uint uFlags);
     
     // Отслеживание нажатий Win для экстренного закрытия
     private static List<DateTime> winKeyPresses = new List<DateTime>();
@@ -64,6 +69,10 @@ class KeyRemapper
         
         // Загружаем биндинги из конфигурационного файла
         keyBindings = ConfigParser.LoadConfig(configFile);
+        
+        // Загружаем текстовые макросы (Text Expander)
+        var textMacros = ConfigParser.LoadTextMacros(configFile);
+        textExpander.LoadMacros(textMacros);
         
         // Overlay инициализируется в MainWindow.OnShown() на UI-потоке
         // для гарантии что handle формы создан до первого запуска скрипта
@@ -217,8 +226,51 @@ class KeyRemapper
                     return (IntPtr)1;
                 }
             }
+
+            // ★ Text Expander: проверяем триггеры только когда GTA активна
+            // и скрипт не выполняется (чтобы не мешать)
+            if (GtaMonitor.IsGtaSaActive() && !InstructionExecutor.IsExecuting())
+            {
+                char character = GetCharacterFromVkCode(vkCode);
+                bool shouldSuppress = textExpander.ProcessKeyPress(key, character);
+                if (shouldSuppress)
+                {
+                    return (IntPtr)1; // Подавляем Enter/Space
+                }
+            }
         }
         // Передаем событие дальше по цепочке хуков
         return CallNextHookEx(_hookID, nCode, wParam, lParam);
     }
+
+    // Конвертирует vkCode в символ с учётом текущей раскладки клавиатуры
+    private static char GetCharacterFromVkCode(int vkCode)
+    {
+        // Игнорируем модификаторы и функциональные клавиши
+        Keys key = (Keys)vkCode;
+        if (key == Keys.ControlKey || key == Keys.ShiftKey || key == Keys.Menu ||
+            key == Keys.LWin || key == Keys.RWin || key == Keys.Escape ||
+            key == Keys.Capital || key == Keys.NumLock ||
+            (vkCode >= 0x70 && vkCode <= 0x87)) // F1-F24
+        {
+            return '\0';
+        }
+
+        byte[] keyboardState = new byte[256];
+        if (!GetKeyboardState(keyboardState))
+            return '\0';
+
+        uint asciiChar;
+        int result = ToAscii((uint)vkCode, 0, keyboardState, out asciiChar, 0);
+
+        if (result == 1)
+        {
+            return (char)(asciiChar & 0xFF);
+        }
+
+        return '\0';
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetKeyboardState(byte[] lpKeyState);
 }

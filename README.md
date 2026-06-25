@@ -27,6 +27,7 @@
 - [Mouse Control](#-mouse-control)
 - [Overlay Visualization](#-overlay-visualization)
 - [Configuration](#-configuration)
+- [Text Expander](#-text-expander)
 - [Script Examples](#-script-examples)
 - [NumPad Keys](#-numpad-keys)
 - [Hotkeys](#-hotkeys)
@@ -55,6 +56,7 @@ Perfect for **GTA SA roleplay servers** (GTA San Andreas Multiplayer), where you
 |:---|:---|
 | 🔄 **Multiple Bindings** | Bind dozens of scripts to different keys |
 | ⚡ **Two Input Modes** | Fast (clipboard) and universal (character-by-character) |
+| ✍️ **Text Expander** | Type a trigger (`.текст`) → auto-replace with file content |
 | 🔀 **Branching System** | Conditional jumps, loops, multiple choice |
 | 🏷 **Labels & Goto** | GOTO, LABEL — create complex scenarios |
 | 🖱 **Mouse Control** | Clicks, cursor movement by coordinates |
@@ -300,6 +302,55 @@ Alt+Q=quick_action.txt
 
 ---
 
+## ✍️ Text Expander
+
+**Text Expander** allows you to type short triggers in the game chat that automatically expand into full text from files.
+
+### How it works
+
+1. You type a trigger (e.g., `.текст`) in the game chat
+2. Press **Enter** (or Space/Tab)
+3. The program deletes the trigger and inserts the file content
+4. If Enter was pressed, the message is sent automatically
+
+### Config Format
+
+```ini
+# Text Expander format: "trigger"=file.txt
+".текст"=hello.txt
+".привет"=greeting.txt
+"!погоня"=pursuit.txt
+">медик"=medic_call.txt
+"@fbi"=fbi_response.txt
+"#911"=emergency.txt
+```
+
+### Features
+
+| Feature | Description |
+|:---|:---|
+| ✅ **Case-insensitive** | `.ТЕКСТ` and `.текст` work the same |
+| ✅ **Any prefix** | Use `.`, `!`, `>`, `@`, `#` or any other character |
+| ✅ **GTA-only** | Only active when GTA SA window is focused |
+| ✅ **Safe** | Does not interfere with scripts — works only when no script is running |
+| ✅ **Layout aware** | Works correctly with both Russian and English keyboard layouts |
+
+### Example
+
+```ini
+# In config.txt:
+".текст"=hello.txt
+```
+
+```ini
+# In hello.txt:
+Привет всем! Я на месте.
+```
+
+In-game: type `.текст` → press Enter → chat shows: `Привет всем! Я на месте.`
+
+---
+
 ## 📂 Script Examples
 
 ### Example 1: Simple Script
@@ -437,7 +488,7 @@ Ctrl+Shift+NumPad5=special_action.txt
 
 ## 📁 Project Structure
 
-```
+```bash
 KeyRemapper/
 ├── 📄 KeyRemapper.cs            # Main class, keyboard hook
 ├── 📄 config.txt                # Bindings configuration
@@ -445,11 +496,14 @@ KeyRemapper/
 ├── 📄 LICENSE                   # MIT License
 │
 ├── 📁 Models/
-│   └── KeyBinding.cs            # Binding data model
+│   ├── KeyBinding.cs            # Binding data model
+│   └── TextMacro.cs             # Text Expander data model
 │
 ├── 📁 Core/
 │   ├── ConfigParser.cs          # config.txt parser
 │   ├── InputSimulator.cs        # Input emulation (Win32 API)
+│   ├── InputTracker.cs          # Character buffer for Text Expander
+│   ├── TextExpander.cs          # Text Expander engine
 │   ├── GtaMonitor.cs            # GTA SA activity monitor
 │   ├── BranchingEngine.cs       # Labels, branches, GOTO processing
 │   ├── Overlay.cs               # Semi-transparent visualization window
@@ -457,8 +511,8 @@ KeyRemapper/
 │   └── InstructionExecutor.cs   # Backward compatibility adapter
 │
 ├── 📁 UI/
-│   ├── MainWindow.cs            # Application main window
-│   └── StyledControls.cs        # Custom UI components
+│   ├── MainWindow.cs            Application main window
+│   └── StyledControls.cs        Custom UI components
 │
 └── 📁 Script examples
     ├── branch_test.txt          # Medical exam with branching

@@ -6,8 +6,11 @@ echo Using compiler: C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe
 REM Compiling all files from the new structure (UI\MainWindow.cs and UI\StyledControls.cs added)
 C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /target:winexe /out:KeyRemapper.exe ^
   Models\KeyBinding.cs ^
+  Models\TextMacro.cs ^
   Core\ConfigParser.cs ^
   Core\InputSimulator.cs ^
+  Core\InputTracker.cs ^
+  Core\TextExpander.cs ^
   Core\GtaMonitor.cs ^
   Core\BranchingEngine.cs ^
   Core\Overlay.cs ^

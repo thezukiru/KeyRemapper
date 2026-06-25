@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 // Класс для парсинга конфигурационного файла
@@ -97,5 +98,54 @@ public static class ConfigParser
             }
 
             return binding;
+        }
+
+        // Загружает текстовые макросы (Text Expander) из config.txt
+        // Формат строки: "триггер"=файл.txt
+        public static List<TextMacro> LoadTextMacros(string configFile)
+        {
+            List<TextMacro> macros = new List<TextMacro>();
+
+            if (!File.Exists(configFile))
+            {
+                Console.WriteLine("Конфигурационный файл не найден: " + configFile);
+                return macros;
+            }
+
+            string[] lines = File.ReadAllLines(configFile);
+
+            foreach (string line in lines)
+            {
+                // Пропускаем пустые строки и комментарии
+                if (string.IsNullOrWhiteSpace(line) || line.Trim().StartsWith("#"))
+                    continue;
+
+                // Парсим формат: "триггер"=файл.txt
+                Match match = Regex.Match(line, @"""(.+?)""\s*=\s*(.+\.txt)");
+                if (match.Success)
+                {
+                    string trigger = match.Groups[1].Value;
+                    string filePath = match.Groups[2].Value.Trim();
+
+                    if (File.Exists(filePath))
+                    {
+                        string content = File.ReadAllText(filePath);
+                        macros.Add(new TextMacro
+                        {
+                            Trigger = trigger,
+                            FilePath = filePath,
+                            Content = content,
+                            UseClipboard = content.StartsWith("!")
+                        });
+                        Console.WriteLine("Загружен макрос: '" + trigger + "' -> " + filePath);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Файл для макроса не найден: " + filePath);
+                    }
+                }
+            }
+
+            return macros;
         }
     }

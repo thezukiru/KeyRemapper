@@ -14,6 +14,7 @@ It features global hooks, macro recording, script branching, and an overlay syst
 **Core Features:**
 - Global Keyboard/Mouse Hooks (`LowLevelKeyboardProc`, `LowLevelMouseProc`)
 - Macro Engine (Delays, Branches, Variables, Loops)
+- Text Expander (Trigger-based text replacement in chat)
 - Overlay UI (Visual feedback in-game)
 - GTA SA Process Detection & Validation
 
@@ -27,8 +28,10 @@ KeyRemapper/
 ├── Core/                # Business logic, hooks, macro engine
 │   ├── MacroEngine.cs   # Script execution logic
 │   ├── HookManager.cs   # Global input hooks
+│   ├── TextExpander.cs   # Text Expander engine (trigger → text replacement)
+│   ├── InputTracker.cs   # Character buffer for Text Expander
 │   └── Overlay.cs       # Visual overlay management
-├── Models/              # Data structures (Macro, ScriptNode, Config)
+├── Models/              # Data structures (KeyBinding, TextMacro, Config)
 ├── UI/                  # WinForms (MainForm, Settings, etc.)
 └── Utils/               # Helpers (Logger, ProcessValidator)
 ```
@@ -142,10 +145,13 @@ KeyRemapper/
 - `Core/Overlay.cs` - OverlayForm с fade-анимацией, breadcrumbs, drag-and-drop позиционированием (524 строки)
 - `Core/GtaMonitor.cs` - Проверка наличия процесса (`IsGtaSaRunning()`) и активности окна (`IsGtaSaActive()`) с кэшированием (100мс)
 - `Core/InputSimulator.cs` - Эмуляция ввода: keybd_event, clipboard paste, мышь (273 строки)
-- `Core/ConfigParser.cs` - Парсинг config.txt (формат: `Ctrl+Shift+E=file.txt`)
+- `Core/ConfigParser.cs` - Парсинг config.txt (формат: `Ctrl+Shift+E=file.txt` + `"триггер"=файл.txt`)
+- `Core/TextExpander.cs` - Движок Text Expander: буфер символов → проверка триггеров → замена на текст
+- `Core/InputTracker.cs` - Отслеживание ввода символов, буфер последних 50 символов
 - `UI/MainWindow.cs` - Главное окно в стиле Province Helper Lite (717 строк)
 - `UI/StyledControls.cs` - Кастомные контролы: RoundedButton, StyledTextBox, StatusIndicator, RoundedPanel
 - `Models/KeyBinding.cs` - Модель биндинга (Key, Ctrl, Shift, Alt, InstructionFile)
+- `Models/TextMacro.cs` - Модель текстового макроса (Trigger, FilePath, Content, UseClipboard)
 
 #### Ключевые особенности реализации
 
@@ -187,10 +193,21 @@ KeyRemapper/
 - Right Shift → ContinueExecution() (пауза {WAIT})
 - Логика обработки Esc вынесена в отдельный блок от Win для надёжности
 
+**Text Expander (добавлено v0.4):**
+- Пользователь набирает триггер (например, `.текст`) в чате GTA SA
+- При нажатии Enter/Space/Tab программа: удаляет триггер → вставляет текст из файла → отправляет Enter
+- Работает только когда GTA SA активна и скрипт не выполняется
+- Регистронезависимый: `.ТЕКСТ` и `.текст` срабатывают одинаково
+- Учёт текущей раскладки клавиатуры через `ToAscii` + `GetKeyboardState`
+- Защита от рекурсии: флаг `isExpanding` блокирует повторное срабатывание
+- Формат config.txt: `".текст"=hello.txt` (триггер в кавычках)
+- Буфер очищается при потере фокуса GTA (через `textExpander.Reset()`)
+
 #### Известные ограничения
 - Теги рации в MainWindow пока заглушка (не сохраняются), и созданы для будущего обновления
 - Добавление биндингов только через редактирование config.txt, до будущего обновления
 - Thread.Sleep в ScriptEngine вместо Task.Delay
+- Text Expander: буфер символов не синхронизируется с реальным содержимым чата (чисто отслеживание нажатий)
 
 #### Roadmap приоритеты
 1. [ ] Миграция Thread.Sleep → Task.Delay в ScriptEngine
@@ -199,6 +216,8 @@ KeyRemapper/
 4. [ ] Variables Engine ({DATE}, {TIME}, {CLIPBOARD}, {RANDOM})
 5. [ ] **Доработать документацию** до адекватного варианта (DOCUMENTATION.md, PROJECT_SUMMARY.md устарели)
 6. [ ] **Создать README.md** для красивого отображения на главной странице GitHub-репозитория
+7. [ ] Сброс буфера TextExpander при потере фокуса GTA (подключить `textExpander.Reset()` к таймеру)
+8. [ ] Веб-интерфейс (WebServer на localhost:10759 для редактирования скриптов через браузер)
 
 #### Изменения v0.3.1 (2026-05-11)
 1. **GtaMonitor.cs**: Добавлен метод `IsGtaSaRunning()` для проверки наличия процесса без проверки активности окна
